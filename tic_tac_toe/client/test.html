@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Socket.IO Connection Test</title>
+</head>
+
+<body>
+  <h1>Cliente de Prueba</h1>
+  <input type="text" id="username" placeholder="Tu nombre de usuario" value="Tester">
+  <button id="joinButton">Unirse a Partida</button>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    // --- 1. CONEXIÓN AL SERVIDOR ---
+    const socket = io("http://localhost:3000");
+
+    // --- 2. EMITIR EVENTO PARA UNIRSE ---
+    const usernameInput = document.getElementById('username');
+    const joinButton = document.getElementById('joinButton');
+
+    joinButton.addEventListener('click', () => {
+      const username = usernameInput.value;
+      if (username) {
+        console.log(`%c[EMITIENDO] joinGame con el usuario: ${username}`, 'color: blue;');
+        socket.emit('joinGame', username);
+        joinButton.disabled = true; // Deshabilitar después de unirse
+      }
+    });
+
+    // --- 3. ESCUCHAR TODOS LOS EVENTOS DEL SERVIDOR Y MOSTRARLOS EN CONSOLA ---
+
+    socket.on('connect', () => {
+      console.log(`%c[CONECTADO] Cliente conectado al servidor con ID: ${socket.id}`, 'color: green; font-weight: bold;');
+    });
+
+    socket.on('disconnect', () => {
+      console.warn('[DESCONECTADO] Se ha perdido la conexión con el servidor.');
+    });
+
+    socket.on('updatePlayers', (players) => {
+      console.log('[RECIBIDO] updatePlayers:', players);
+    });
+
+    socket.on('gameStarted', (gameState) => {
+      console.log('%c[RECIBIDO] gameStarted:', 'color: purple;', gameState);
+    });
+
+    socket.on('gameStateUpdate', (gameState) => {
+      console.log('[RECIBIDO] gameStateUpdate:', gameState);
+    });
+
+    socket.on('gameOver', (gameState) => {
+      console.log('%c[RECIBIDO] gameOver:', 'color: red;', gameState);
+    });
+
+    socket.on('gameError', (error) => {
+      console.error('[RECIBIDO] gameError:', error.message);
+    });
+
+    socket.on('opponentDisconnected', () => {
+      console.warn('[RECIBIDO] opponentDisconnected: El oponente se ha desconectado.');
+    });
+
+  </script>
+</body>
+
+</html>
