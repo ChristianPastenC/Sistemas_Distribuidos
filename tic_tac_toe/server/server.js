@@ -19,8 +19,12 @@ io.on("connection", (socket) => {
 
   socket.on("joinGame", (username) => {
     try {
-      const game = gameManager.joinOrCreateGame(socket, username);
+      const { game, isNew } = gameManager.joinOrCreateGame(socket, username);
       const roomId = game.id;
+
+      if (isNew) {
+        socket.emit("waitingForOpponent");
+      }
 
       io.to(roomId).emit("updatePlayers", game.getGameState().players);
 

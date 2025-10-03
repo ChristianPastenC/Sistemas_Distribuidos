@@ -20,7 +20,7 @@ class GameManager {
       waitingGame.addPlayer({ username, socketId: socket.id });
       socket.join(waitingGame.id);
       this.players.set(socket.id, waitingGame.id);
-      return waitingGame;
+      return { game: waitingGame, isNew: false };
     } else {
       const roomId = `room-${Date.now()}`;
       const newGame = new Game(roomId);
@@ -29,7 +29,7 @@ class GameManager {
       newGame.addPlayer({ username, socketId: socket.id });
       socket.join(roomId);
       this.players.set(socket.id, roomId);
-      return newGame;
+      return { game: newGame, isNew: true };
     }
   }
   
