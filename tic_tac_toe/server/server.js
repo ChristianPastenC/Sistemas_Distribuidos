@@ -54,14 +54,40 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("playAgainRequest", () => {
+    const game = gameManager.getGameBySocketId(socket.id);
+    if (game && game.state === "FINISHED") {
+      game.readyForNextRound.add(socket.id);
+      if (game.readyForNextRound.size === 2) {
+        game.resetForNewRound();
+        io.to(game.id).emit("gameStarted", game.getGameState());
+      } else {
+        io.to(game.id).emit("playerReady", game.getGameState());
+      }
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log(`Cliente desconectado: ${socket.id}`);
-    const disconnectedPlayerInfo = gameManager.removePlayer(socket.id);
+    const rematchInfo = gameManager.removePlayer(socket.id);
 
-    if (disconnectedPlayerInfo) {
-      const { opponentSocket, roomId } = disconnectedPlayerInfo;
-      if (opponentSocket) {
-        io.to(opponentSocket).emit("opponentDisconnected");
+    if (rematchInfo && rematchInfo.remainingPlayer) {
+      const { remainingPlayer } = rematchInfo;
+      const remainingPlayerSocket = io.sockets.sockets.get(remainingPlayer.socketId);
+      
+      if (remainingPlayerSocket) {
+        console.log(`Re-emparejando a: ${remainingPlayer.username} (${remainingPlayer.socketId})`);
+        
+        remainingPlayerSocket.emit("findingNewOpponent");
+
+        try {
+          const { game } = gameManager.joinOrCreateGame(remainingPlayerSocket, remainingPlayer.username);
+          if (game.state === "PLAYING") {
+            io.to(game.id).emit("gameStarted", game.getGameState());
+          }
+        } catch (error) {
+          remainingPlayerSocket.emit("gameError", { message: error.message });
+        }
       }
     }
   });

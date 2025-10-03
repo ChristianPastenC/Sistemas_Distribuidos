@@ -10,7 +10,7 @@ class GameManager {
   joinOrCreateGame(socket, username) {
     let waitingGame = null;
     for (const game of this.games.values()) {
-      if (game.state === "WAITING") {
+      if (game.state === "WAITING" && game.players.length === 1) {
         waitingGame = game;
         break;
       }
@@ -45,7 +45,8 @@ class GameManager {
     const game = this.games.get(roomId);
     if (!game) return null;
 
-    const opponent = game.players.find(p => p.socketId !== socketId);
+    const wasPlaying = game.state === "PLAYING";
+    const remainingPlayer = game.players.find(p => p.socketId !== socketId);
     
     game.removePlayer(socketId);
     this.players.delete(socketId);
@@ -55,10 +56,14 @@ class GameManager {
       return null;
     }
 
-    return { 
-      opponentSocket: opponent ? opponent.socketId : null, 
-      roomId 
-    };
+    if (wasPlaying && remainingPlayer) {
+        this.games.delete(roomId);
+        this.players.delete(remainingPlayer.socketId);
+        
+        return { remainingPlayer };
+    }
+
+    return null;
   }
 }
 
