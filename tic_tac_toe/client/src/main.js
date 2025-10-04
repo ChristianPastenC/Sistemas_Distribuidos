@@ -4,17 +4,30 @@ import LoginScene from './scenes/LoginScene';
 
 const config = {
   type: Phaser.AUTO,
-  width: 600,
-  height: 900,
   scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH
+    mode: Phaser.Scale.RESIZE,
+    parent: 'game-container',
+    width: '100%',
+    height: '100%'
   },
   parent: 'game-container',
   dom: {
     createContainer: true
   },
+  render: {
+    pixelArt: false,
+    antialias: true,
+  },
   scene: [LoginScene, GameScene]
 };
 
 const game = new Phaser.Game(config);
+
+window.addEventListener('resize', () => {
+  const scenes = game.scene.getScenes(true);
+  scenes.forEach(scene => {
+    if (scene && typeof scene.resize === 'function') {
+      scene.resize(window.innerWidth, window.innerHeight);
+    }
+  });
+});

@@ -3,43 +3,65 @@ import Phaser from 'phaser';
 class LoginScene extends Phaser.Scene {
 
   constructor() {
-    super({ key: 'LoginScene' });
+    super({
+      key: 'LoginScene'
+    });
   }
 
   create() {
-    const { width, height } = this.scale;
+    this.drawScene();
+  }
 
-    this.add.text(width / 2, height * 0.2, 'Ingresa tu nombre', {
-      fontSize: '40px',
-      fill: '#ffffff',
-      fontStyle: 'bold'
+  drawScene() {
+    this.children.removeAll();
+    const {
+      width,
+      height
+    } = this.scale;
+
+    this.cameras.main.setBackgroundColor('#f8f9fa');
+
+    this.add.text(width / 2, height * 0.3, 'Ingresa tu nombre', {
+      fontSize: `${Math.max(24, width * 0.04)}px`,
+      color: '#343a40',
+      fontStyle: 'bold',
+      fontFamily: 'Arial, sans-serif'
     }).setOrigin(0.5);
 
-    const inputElement = this.add.dom(width / 2, height * 0.35).createFromHTML(`
-      <input type="text" id="usernameInput" placeholder="Tu nombre" style="width: 80%; max-width: 400px; padding: 15px; font-size: 20px; border-radius: 5px; border: 1px solid #ccc; text-align: center;">
+    this.add.dom(width / 2, height * 0.45).createFromHTML(`
+      <input type="text" id="usernameInput" placeholder="Tu nombre" style="width: 80%; max-width: 400px; padding: 18px; font-size: 22px; border-radius: 10px; border: 2px solid #ced4da; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
     `);
 
-    const joinButton = this.add.text(width / 2, height * 0.5, 'Unirse al juego', {
-      fontSize: '32px',
-      fill: '#00ff00',
-      backgroundColor: '#333333',
-      padding: { x: 20, y: 10 },
-      fontStyle: 'bold'
-    }).setOrigin(0.5).setInteractive({ cursor: 'pointer' });
+    const joinButton = this.add.text(width / 2, height * 0.6, 'Unirse al juego', {
+      fontSize: `${Math.max(20, width * 0.03)}px`,
+      color: '#ffffff',
+      backgroundColor: '#007bff',
+      padding: {
+        x: 30,
+        y: 15
+      },
+      fontStyle: 'bold',
+      fontFamily: 'Arial, sans-serif',
+      borderRadius: 10
+    }).setOrigin(0.5).setInteractive({
+      cursor: 'pointer'
+    });
 
     joinButton.on('pointerdown', () => {
-      const username = inputElement.getChildByID('usernameInput').value.trim();
-      if (username) {
-        inputElement.setVisible(false);
-        this.scene.start('GameScene', { username });
-      } else {
-        alert('Por favor, ingresa un nombre para continuar.');
+      const usernameInput = document.getElementById('usernameInput');
+      if (usernameInput && usernameInput.value) {
+        this.scene.start('GameScene', {
+          username: usernameInput.value
+        });
       }
     });
 
-    this.input.keyboard.on('keydown-ENTER', () => {
-      joinButton.emit('pointerdown');
-    });
+    joinButton.on('pointerover', () => joinButton.setBackgroundColor('#0056b3'));
+    joinButton.on('pointerout', () => joinButton.setBackgroundColor('#007bff'));
+  }
+
+  resize() {
+    this.drawScene();
   }
 }
 
