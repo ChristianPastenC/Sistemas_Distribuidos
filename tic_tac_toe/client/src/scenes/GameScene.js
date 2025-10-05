@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { io } from 'socket.io-client';
 
-const SERVER_URL = 'http://localhost:3000';
+// const SERVER_URL = 'http://localhost:3000';
+const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
 class GameScene extends Phaser.Scene {
 
