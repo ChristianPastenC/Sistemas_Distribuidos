@@ -15,8 +15,7 @@ class GameScene extends Phaser.Scene {
   }
 
   init(data) {
-    this.username = data.username || `Player_${Phaser.Math.Between(100, 999)}`;
-    this.socket = null;
+    this.username = data.username?.trim() || `Player_${Phaser.Math.Between(100, 999)}`;
     this.playerSymbol = null;
     this.canPlay = false;
     this.serverBoard = Array(9).fill(null);
@@ -36,14 +35,37 @@ class GameScene extends Phaser.Scene {
 
     this.drawInitialMessage('Conectando...');
     
-    this.socket = io(SERVER_URL);
+    this.socket = io(SERVER_URL, {
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 10000,
+      transports: ['websocket', 'polling'],
+      forceNew: true
+    });
     
     this.setupSocketEvents();
-    
     this.socket.emit('joinGame', this.username);
   }
 
   setupSocketEvents() {
+    this.socket.on('connect', () => {
+      this.socket.emit('joinGame', this.username);
+    });
+
+    this.socket.on('connect_error', (error) => {
+      this.drawInitialMessage('Error de conexión.\nIntentando reconectar...');
+    });
+
+    this.socket.on('disconnect', (reason) => {
+      this.canPlay = false;
+      
+      if (reason === 'io server disconnect') {
+        this.drawInitialMessage('Desconectado del servidor.\nReconectando...');
+        this.socket.connect();
+      }
+    });
+
     this.socket.on('waitingForOpponent', () => {
       this.drawInitialMessage('Esperando a un oponente...');
     });
@@ -129,8 +151,7 @@ class GameScene extends Phaser.Scene {
     });
 
     this.socket.on('gameError', (error) => {
-      console.error('Error del servidor:', error.message);
-      alert(`Error del servidor: ${error.message}`);
+      this.drawInitialMessage(`Error: ${error.message}`);
       this.canPlay = true;
     });
 
@@ -490,6 +511,14 @@ class GameScene extends Phaser.Scene {
         }
         this.drawWinningLine();
       }
+    }
+  }
+
+  shutdown() {
+    if (this.socket) {
+      this.socket.removeAllListeners();
+      this.socket.disconnect();
+      this.socket = null;
     }
   }
 }

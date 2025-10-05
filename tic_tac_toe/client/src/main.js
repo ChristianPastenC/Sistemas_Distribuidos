@@ -24,10 +24,30 @@ const config = {
 const game = new Phaser.Game(config);
 
 window.addEventListener('resize', () => {
-  const scenes = game.scene.getScenes(true);
-  scenes.forEach(scene => {
-    if (scene && typeof scene.resize === 'function') {
+  game.scale.resize(window.innerWidth, window.innerHeight);
+
+  game.scene.scenes.forEach(scene => {
+    if (scene.scene.isActive() && scene.resize) {
       scene.resize(window.innerWidth, window.innerHeight);
     }
   });
 });
+
+window.addEventListener('beforeunload', () => {
+  if (window.globalSocket) {
+    window.globalSocket.disconnect();
+  }
+});
+
+document.addEventListener('gesturestart', (e) => {
+  e.preventDefault();
+});
+
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (now - lastTouchEnd <= 300) {
+    e.preventDefault();
+  }
+  lastTouchEnd = now;
+}, false);
