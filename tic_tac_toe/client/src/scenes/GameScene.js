@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import { io } from 'socket.io-client';
 
-const SERVER_URL = 'http://localhost:3000';
-// const SERVER_URL = import.meta.env.VITE_SERVER_URL;
+// const SERVER_URL = 'http://localhost:3000';
+const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
 class GameScene extends Phaser.Scene {
 
@@ -57,127 +57,127 @@ class GameScene extends Phaser.Scene {
   }
 
   setupSocketEvents() {
-  this.socket.on('connect', () => {
-    if (!this.gameState || this.gameState.state === 'WAITING') {
-      this.socket.emit('joinGame', this.username);
-    }
-  });
+    this.socket.on('connect', () => {
+      if (!this.gameState || this.gameState.state === 'WAITING') {
+        this.socket.emit('joinGame', this.username);
+      }
+    });
 
-  this.socket.on('connect_error', (error) => {
-    this.drawInitialMessage('Error de conexión.\nIntentando reconectar...');
-  });
+    this.socket.on('connect_error', (error) => {
+      this.drawInitialMessage('Error de conexión.\nIntentando reconectar...');
+    });
 
-  this.socket.on('disconnect', (reason) => {
-    this.canPlay = false;
-    
-    if (reason === 'io server disconnect') {
-      this.drawInitialMessage('Desconectado del servidor.\nReconectando...');
-      this.socket.connect();
-    } else if (reason === 'transport close' || reason === 'transport error') {
-      this.drawInitialMessage('Conexión perdida.\nReconectando...');
-    }
-  });
+    this.socket.on('disconnect', (reason) => {
+      this.canPlay = false;
 
-  this.socket.on('waitingForOpponent', () => {
-    this.drawInitialMessage('Esperando a un oponente...');
-  });
+      if (reason === 'io server disconnect') {
+        this.drawInitialMessage('Desconectado del servidor.\nReconectando...');
+        this.socket.connect();
+      } else if (reason === 'transport close' || reason === 'transport error') {
+        this.drawInitialMessage('Conexión perdida.\nReconectando...');
+      }
+    });
 
-  this.socket.on('gameStarted', (gameState) => {
-    const me = gameState.players.find(p => p.socketId === this.socket.id);
-    if (me) {
-      this.playerSymbol = me.symbol;
-    }
-    
-    this.gameState = {
-      board: gameState.board,
-      state: gameState.state,
-      players: gameState.players,
-      score: gameState.score,
-      currentPlayer: gameState.currentPlayer,
-      winner: null,
-      isDraw: false
-    };
-    
-    this.serverBoard = [...gameState.board];
-    this.canPlay = true;
-    this.drawGameUI();
-  });
+    this.socket.on('waitingForOpponent', () => {
+      this.drawInitialMessage('Esperando a un oponente...');
+    });
 
-  this.socket.on('gameStateUpdate', (gameState) => {
-    this.serverBoard = [...gameState.board];
-    this.canPlay = true;
-    this.gameState = {
-      ...this.gameState,
-      board: gameState.board,
-      state: gameState.state,
-      currentPlayer: gameState.currentPlayer,
-      score: gameState.score
-    };
-    this.updateGameUI();
-  });
+    this.socket.on('gameStarted', (gameState) => {
+      const me = gameState.players.find(p => p.socketId === this.socket.id);
+      if (me) {
+        this.playerSymbol = me.symbol;
+      }
 
-  this.socket.on('gameOver', (gameState) => {
-    this.canPlay = false;
-    this.serverBoard = [...gameState.board];
-    
-    let winningLine = null;
-    if (!gameState.isDraw && gameState.winner) {
-      winningLine = this.calculateWinningLine(gameState.board);
-    }
-    
-    this.gameState = {
-      ...this.gameState,
-      board: gameState.board,
-      state: 'FINISHED',
-      winner: gameState.winner,
-      isDraw: gameState.isDraw,
-      score: gameState.score,
-      winningLine: winningLine
-    };
-    this.updateGameUI();
-    this.showRestartButton();
-  });
+      this.gameState = {
+        board: gameState.board,
+        state: gameState.state,
+        players: gameState.players,
+        score: gameState.score,
+        currentPlayer: gameState.currentPlayer,
+        winner: null,
+        isDraw: false
+      };
 
-  this.socket.on('playerReady', (gameState) => {
-    if (this.restartButton) {
-      const amIReady = gameState.readyForNextRound?.includes(this.socket.id);
-      if (amIReady) {
-        this.restartButton.setText('Esperando...').disableInteractive();
-      } else {
-        const readyPlayer = gameState.players.find(p => 
-          gameState.readyForNextRound?.includes(p.socketId)
-        );
-        if (readyPlayer && this.turnIndicatorText) {
-          this.turnIndicatorText.setText(`${readyPlayer.username} quiere la revancha.`);
+      this.serverBoard = [...gameState.board];
+      this.canPlay = true;
+      this.drawGameUI();
+    });
+
+    this.socket.on('gameStateUpdate', (gameState) => {
+      this.serverBoard = [...gameState.board];
+      this.canPlay = true;
+      this.gameState = {
+        ...this.gameState,
+        board: gameState.board,
+        state: gameState.state,
+        currentPlayer: gameState.currentPlayer,
+        score: gameState.score
+      };
+      this.updateGameUI();
+    });
+
+    this.socket.on('gameOver', (gameState) => {
+      this.canPlay = false;
+      this.serverBoard = [...gameState.board];
+
+      let winningLine = null;
+      if (!gameState.isDraw && gameState.winner) {
+        winningLine = this.calculateWinningLine(gameState.board);
+      }
+
+      this.gameState = {
+        ...this.gameState,
+        board: gameState.board,
+        state: 'FINISHED',
+        winner: gameState.winner,
+        isDraw: gameState.isDraw,
+        score: gameState.score,
+        winningLine: winningLine
+      };
+      this.updateGameUI();
+      this.showRestartButton();
+    });
+
+    this.socket.on('playerReady', (gameState) => {
+      if (this.restartButton) {
+        const amIReady = gameState.readyForNextRound?.includes(this.socket.id);
+        if (amIReady) {
+          this.restartButton.setText('Esperando...').disableInteractive();
+        } else {
+          const readyPlayer = gameState.players.find(p =>
+            gameState.readyForNextRound?.includes(p.socketId)
+          );
+          if (readyPlayer && this.turnIndicatorText) {
+            this.turnIndicatorText.setText(`${readyPlayer.username} quiere la revancha.`);
+          }
         }
       }
-    }
-  });
+    });
 
-  this.socket.on('findingNewOpponent', () => {
-    this.canPlay = false;
-    this.serverBoard = Array(9).fill(null);
-    if (this.restartButton) {
-      this.restartButton.destroy();
-      this.restartButton = null;
-    }
-    this.drawInitialMessage('Oponente desconectado.\nBuscando nueva partida...');
-  });
+    this.socket.on('findingNewOpponent', () => {
+      this.canPlay = false;
+      this.serverBoard = Array(9).fill(null);
+      if (this.restartButton) {
+        this.restartButton.destroy();
+        this.restartButton = null;
+      }
+      this.drawInitialMessage('Oponente desconectado.\nBuscando nueva partida...');
+    });
 
-  this.socket.on('gameError', (error) => {
-    this.drawInitialMessage(`Error: ${error.message}`);
-    this.canPlay = true;
-  });
+    this.socket.on('gameError', (error) => {
+      this.drawInitialMessage(`Error: ${error.message}`);
+      this.canPlay = true;
+    });
 
-  this.socket.on('opponentDisconnected', () => {
-    this.canPlay = false;
-    if (this.restartButton) {
-      this.restartButton.destroy();
-      this.restartButton = null;
-    }
-    this.drawInitialMessage('Tu oponente se desconectó.');
-  });
-}
+    this.socket.on('opponentDisconnected', () => {
+      this.canPlay = false;
+      if (this.restartButton) {
+        this.restartButton.destroy();
+        this.restartButton = null;
+      }
+      this.drawInitialMessage('Tu oponente se desconectó.');
+    });
+  }
 
   drawInitialMessage(message) {
     this.uiElements.clear(true, true);
@@ -192,7 +192,7 @@ class GameScene extends Phaser.Scene {
     }
     this.interactiveCells.forEach(cell => cell.destroy());
     this.interactiveCells = [];
-    
+
     const { width, height } = this.scale;
     this.statusText = this.add.text(width / 2, height / 2, message, {
       fontSize: '48px',
@@ -221,7 +221,7 @@ class GameScene extends Phaser.Scene {
     }
     this.interactiveCells.forEach(cell => cell.destroy());
     this.interactiveCells = [];
-    
+
     this.createScoreboard();
     this.createTurnIndicator();
     this.createBoard();
@@ -258,12 +258,12 @@ class GameScene extends Phaser.Scene {
     this.updateScoreboard();
     this.updateTurnIndicator();
     this.updateBoardPieces();
-    
+
     if (this.winningLineGraphics) {
       this.winningLineGraphics.destroy();
       this.winningLineGraphics = null;
     }
-    
+
     if (this.gameState?.winningLine) {
       this.drawWinningLine();
     }
@@ -305,10 +305,10 @@ class GameScene extends Phaser.Scene {
 
   updateTurnIndicator() {
     if (!this.gameState || !this.turnIndicatorText) return;
-    
+
     const { state, players, currentPlayer, winner, isDraw } = this.gameState;
     const isMyTurn = currentPlayer?.socketId === this.socket.id;
-    
+
     let text = '';
     let color = '#343a40';
 
@@ -327,9 +327,9 @@ class GameScene extends Phaser.Scene {
         color = iAmWinner ? '#28a745' : '#dc3545';
       }
     }
-    
+
     this.turnIndicatorText.setText(text).setColor(color);
-    
+
     if (this.indicatorTween) this.indicatorTween.stop();
     this.turnIndicatorText.setScale(1);
 
@@ -347,7 +347,7 @@ class GameScene extends Phaser.Scene {
 
   createBoard() {
     this.boardGraphics = this.add.graphics();
-    
+
     for (let i = 0; i < 9; i++) {
       const cell = this.add.rectangle(0, 0, 1, 1, 0x000000, 0)
         .setOrigin(0)
@@ -355,15 +355,15 @@ class GameScene extends Phaser.Scene {
       cell.on('pointerdown', () => this.handleCellClick(i));
       this.interactiveCells.push(cell);
     }
-    
+
     this.positionBoard();
   }
 
   handleCellClick(index) {
     if (!this.gameState) return;
-    
+
     const isMyTurn = this.gameState.currentPlayer?.socketId === this.socket.id;
-    
+
     if (this.canPlay && isMyTurn && this.serverBoard[index] === null) {
       this.canPlay = false;
       this.socket.emit('makeMove', { index });
@@ -394,31 +394,31 @@ class GameScene extends Phaser.Scene {
 
   drawWinningLine() {
     const { winningLine } = this.gameState;
-    
+
     if (!winningLine || !this.boardRect) {
       return;
     }
-    
+
     if (!Array.isArray(winningLine) || winningLine.length < 3) {
       return;
     }
-    
+
     const { x, y, cell } = this.boardRect;
     const startCell = winningLine[0];
     const endCell = winningLine[2];
-    
+
     const startX = x + (startCell % 3) * cell + cell / 2;
     const startY = y + Math.floor(startCell / 3) * cell + cell / 2;
     const endX = x + (endCell % 3) * cell + cell / 2;
     const endY = y + Math.floor(endCell / 3) * cell + cell / 2;
-    
+
     this.winningLineGraphics = this.add.graphics();
     this.winningLineGraphics.lineStyle(12, 0x28a745, 1);
     this.winningLineGraphics.beginPath();
     this.winningLineGraphics.moveTo(startX, startY);
     this.winningLineGraphics.lineTo(endX, endY);
     this.winningLineGraphics.strokePath();
-    
+
     this.winningLineGraphics.setAlpha(0);
     this.tweens.add({
       targets: this.winningLineGraphics,
@@ -430,7 +430,7 @@ class GameScene extends Phaser.Scene {
 
   showRestartButton() {
     if (this.restartButton) return;
-    
+
     const { width, height } = this.scale;
     this.restartButton = this.add.text(width / 2, height - 80, 'Jugar de Nuevo', {
       fontSize: '28px',
@@ -440,11 +440,11 @@ class GameScene extends Phaser.Scene {
       fontStyle: 'bold',
       fontFamily: 'Arial, sans-serif'
     }).setOrigin(0.5).setInteractive({ cursor: 'pointer' });
-    
+
     this.restartButton.on('pointerdown', () => {
       this.socket.emit('playAgainRequest');
     });
-    
+
     this.restartButton.on('pointerover', () => this.restartButton.setBackgroundColor('#218838'));
     this.restartButton.on('pointerout', () => this.restartButton.setBackgroundColor('#28a745'));
   }
@@ -452,7 +452,7 @@ class GameScene extends Phaser.Scene {
   positionUI() {
     const { width, height } = this.scale;
     const isLandscape = width > height;
-    
+
     if (this.scoreXText) this.scoreXText.setPosition(width * 0.25, isLandscape ? 40 : 60);
     if (this.scoreOText) this.scoreOText.setPosition(width * 0.75, isLandscape ? 40 : 60);
     if (this.turnIndicatorText) this.turnIndicatorText.setPosition(width / 2, isLandscape ? 100 : 130);
@@ -462,12 +462,12 @@ class GameScene extends Phaser.Scene {
 
   positionBoard() {
     if (!this.boardGraphics) return;
-    
+
     const { width, height } = this.scale;
     const isLandscape = width > height;
-    
+
     let boardSize, startX, startY;
-    
+
     if (isLandscape) {
       boardSize = Math.min(width * 0.5, height * 0.7);
       startX = (width - boardSize) / 2;
@@ -477,29 +477,29 @@ class GameScene extends Phaser.Scene {
       startX = (width - boardSize) / 2;
       startY = (height / 2) - (boardSize / 2) + 50;
     }
-    
+
     const cellSize = boardSize / 3;
-    
+
     this.boardRect = { x: startX, y: startY, size: boardSize, cell: cellSize };
-    
+
     this.boardGraphics.clear();
     this.boardGraphics.lineStyle(10, 0xdee2e6, 1);
-    
+
     this.boardGraphics.beginPath();
     this.boardGraphics.moveTo(startX + cellSize, startY + 10);
     this.boardGraphics.lineTo(startX + cellSize, startY + boardSize - 10);
     this.boardGraphics.strokePath();
-    
+
     this.boardGraphics.beginPath();
     this.boardGraphics.moveTo(startX + cellSize * 2, startY + 10);
     this.boardGraphics.lineTo(startX + cellSize * 2, startY + boardSize - 10);
     this.boardGraphics.strokePath();
-    
+
     this.boardGraphics.beginPath();
     this.boardGraphics.moveTo(startX + 10, startY + cellSize);
     this.boardGraphics.lineTo(startX + boardSize - 10, startY + cellSize);
     this.boardGraphics.strokePath();
-    
+
     this.boardGraphics.beginPath();
     this.boardGraphics.moveTo(startX + 10, startY + cellSize * 2);
     this.boardGraphics.lineTo(startX + boardSize - 10, startY + cellSize * 2);
