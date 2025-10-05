@@ -23,6 +23,19 @@ const config = {
 
 const game = new Phaser.Game(config);
 
+function cleanupOrphanedInputs() {
+  const allLoginInputs = Array.from(document.querySelectorAll('.login-input'));
+  
+  if (allLoginInputs.length > 1) {
+    console.log(`Limpiando ${allLoginInputs.length - 1} inputs duplicados`);
+    allLoginInputs.slice(0, -1).forEach(input => {
+      if (input && input.parentNode) {
+        input.parentNode.removeChild(input);
+      }
+    });
+  }
+}
+
 window.addEventListener('resize', () => {
   game.scale.resize(window.innerWidth, window.innerHeight);
 
@@ -34,8 +47,20 @@ window.addEventListener('resize', () => {
 });
 
 window.addEventListener('beforeunload', () => {
+  cleanupOrphanedInputs();
+  
   if (window.globalSocket) {
     window.globalSocket.disconnect();
+  }
+});
+
+window.addEventListener('load', () => {
+  cleanupOrphanedInputs();
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    cleanupOrphanedInputs();
   }
 });
 
@@ -51,3 +76,5 @@ document.addEventListener('touchend', (e) => {
   }
   lastTouchEnd = now;
 }, false);
+
+window.cleanupLoginInputs = cleanupOrphanedInputs;

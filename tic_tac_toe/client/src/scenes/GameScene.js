@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import { io } from 'socket.io-client';
 
-// const SERVER_URL = 'http://localhost:3000';
-const SERVER_URL = import.meta.env.VITE_SERVER_URL;
+const SERVER_URL = 'http://localhost:3000';
+// const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
 class GameScene extends Phaser.Scene {
 
@@ -30,12 +30,19 @@ class GameScene extends Phaser.Scene {
   }
 
   create() {
+    const allLoginInputs = document.querySelectorAll('.login-input');
+    allLoginInputs.forEach(input => {
+      if (input && input.parentNode) {
+        input.parentNode.removeChild(input);
+      }
+    });
+
     this.cameras.main.setBackgroundColor('#f8f9fa');
     this.uiElements = this.add.group();
     this.pieceElements = this.add.group();
 
     this.drawInitialMessage('Conectando...');
-    
+
     this.socket = io(SERVER_URL, {
       reconnection: true,
       reconnectionAttempts: 5,
@@ -44,127 +51,133 @@ class GameScene extends Phaser.Scene {
       transports: ['websocket', 'polling'],
       forceNew: true
     });
-    
+
     this.setupSocketEvents();
     this.socket.emit('joinGame', this.username);
   }
 
   setupSocketEvents() {
-    this.socket.on('connect', () => {
+  this.socket.on('connect', () => {
+    if (!this.gameState || this.gameState.state === 'WAITING') {
       this.socket.emit('joinGame', this.username);
-    });
+    }
+  });
 
-    this.socket.on('connect_error', (error) => {
-      this.drawInitialMessage('Error de conexión.\nIntentando reconectar...');
-    });
+  this.socket.on('connect_error', (error) => {
+    this.drawInitialMessage('Error de conexión.\nIntentando reconectar...');
+  });
 
-    this.socket.on('disconnect', (reason) => {
-      this.canPlay = false;
-      
-      if (reason === 'io server disconnect') {
-        this.drawInitialMessage('Desconectado del servidor.\nReconectando...');
-        this.socket.connect();
-      }
-    });
+  this.socket.on('disconnect', (reason) => {
+    this.canPlay = false;
+    
+    if (reason === 'io server disconnect') {
+      this.drawInitialMessage('Desconectado del servidor.\nReconectando...');
+      this.socket.connect();
+    } else if (reason === 'transport close' || reason === 'transport error') {
+      this.drawInitialMessage('Conexión perdida.\nReconectando...');
+    }
+  });
 
-    this.socket.on('waitingForOpponent', () => {
-      this.drawInitialMessage('Esperando a un oponente...');
-    });
+  this.socket.on('waitingForOpponent', () => {
+    this.drawInitialMessage('Esperando a un oponente...');
+  });
 
-    this.socket.on('gameStarted', (gameState) => {
-      const me = gameState.players.find(p => p.socketId === this.socket.id);
-      if (me) this.playerSymbol = me.symbol;
-      
-      this.gameState = {
-        board: gameState.board,
-        state: gameState.state,
-        players: gameState.players,
-        score: gameState.score,
-        currentPlayer: gameState.currentPlayer,
-        winner: null,
-        isDraw: false
-      };
-      
-      this.serverBoard = [...gameState.board];
-      this.canPlay = true;
-      this.drawGameUI();
-    });
+  this.socket.on('gameStarted', (gameState) => {
+    const me = gameState.players.find(p => p.socketId === this.socket.id);
+    if (me) {
+      this.playerSymbol = me.symbol;
+    }
+    
+    this.gameState = {
+      board: gameState.board,
+      state: gameState.state,
+      players: gameState.players,
+      score: gameState.score,
+      currentPlayer: gameState.currentPlayer,
+      winner: null,
+      isDraw: false
+    };
+    
+    this.serverBoard = [...gameState.board];
+    this.canPlay = true;
+    this.drawGameUI();
+  });
 
-    this.socket.on('gameStateUpdate', (gameState) => {
-      this.serverBoard = [...gameState.board];
-      this.canPlay = true;
-      this.gameState = {
-        ...this.gameState,
-        board: gameState.board,
-        state: gameState.state,
-        currentPlayer: gameState.currentPlayer,
-        score: gameState.score
-      };
-      this.updateGameUI();
-    });
+  this.socket.on('gameStateUpdate', (gameState) => {
+    this.serverBoard = [...gameState.board];
+    this.canPlay = true;
+    this.gameState = {
+      ...this.gameState,
+      board: gameState.board,
+      state: gameState.state,
+      currentPlayer: gameState.currentPlayer,
+      score: gameState.score
+    };
+    this.updateGameUI();
+  });
 
-    this.socket.on('gameOver', (gameState) => {
-      this.canPlay = false;
-      this.serverBoard = [...gameState.board];
-      
-      let winningLine = null;
-      if (!gameState.isDraw && gameState.winner) {
-        winningLine = this.calculateWinningLine(gameState.board);
-      }
-      
-      this.gameState = {
-        ...this.gameState,
-        board: gameState.board,
-        state: 'FINISHED',
-        winner: gameState.winner,
-        isDraw: gameState.isDraw,
-        score: gameState.score,
-        winningLine: winningLine
-      };
-      this.updateGameUI();
-      this.showRestartButton();
-    });
+  this.socket.on('gameOver', (gameState) => {
+    this.canPlay = false;
+    this.serverBoard = [...gameState.board];
+    
+    let winningLine = null;
+    if (!gameState.isDraw && gameState.winner) {
+      winningLine = this.calculateWinningLine(gameState.board);
+    }
+    
+    this.gameState = {
+      ...this.gameState,
+      board: gameState.board,
+      state: 'FINISHED',
+      winner: gameState.winner,
+      isDraw: gameState.isDraw,
+      score: gameState.score,
+      winningLine: winningLine
+    };
+    this.updateGameUI();
+    this.showRestartButton();
+  });
 
-    this.socket.on('playerReady', (gameState) => {
-      if (this.restartButton) {
-        const amIReady = gameState.readyForNextRound?.includes(this.socket.id);
-        if (amIReady) {
-          this.restartButton.setText('Esperando...').disableInteractive();
-        } else {
-          const readyPlayer = gameState.players.find(p => 
-            gameState.readyForNextRound?.includes(p.socketId)
-          );
-          if (readyPlayer && this.turnIndicatorText) {
-            this.turnIndicatorText.setText(`${readyPlayer.username} quiere la revancha.`);
-          }
+  this.socket.on('playerReady', (gameState) => {
+    if (this.restartButton) {
+      const amIReady = gameState.readyForNextRound?.includes(this.socket.id);
+      if (amIReady) {
+        this.restartButton.setText('Esperando...').disableInteractive();
+      } else {
+        const readyPlayer = gameState.players.find(p => 
+          gameState.readyForNextRound?.includes(p.socketId)
+        );
+        if (readyPlayer && this.turnIndicatorText) {
+          this.turnIndicatorText.setText(`${readyPlayer.username} quiere la revancha.`);
         }
       }
-    });
+    }
+  });
 
-    this.socket.on('findingNewOpponent', () => {
-      this.canPlay = false;
-      this.serverBoard = Array(9).fill(null);
-      if (this.restartButton) {
-        this.restartButton.destroy();
-        this.restartButton = null;
-      }
-      this.drawInitialMessage('Oponente desconectado.\nBuscando nueva partida...');
-    });
+  this.socket.on('findingNewOpponent', () => {
+    this.canPlay = false;
+    this.serverBoard = Array(9).fill(null);
+    if (this.restartButton) {
+      this.restartButton.destroy();
+      this.restartButton = null;
+    }
+    this.drawInitialMessage('Oponente desconectado.\nBuscando nueva partida...');
+  });
 
-    this.socket.on('gameError', (error) => {
-      this.drawInitialMessage(`Error: ${error.message}`);
-      this.canPlay = true;
-    });
+  this.socket.on('gameError', (error) => {
+    this.drawInitialMessage(`Error: ${error.message}`);
+    this.canPlay = true;
+  });
 
-    this.socket.on('opponentDisconnected', () => {
-      this.canPlay = false;
-      if (this.restartButton) {
-        this.restartButton.destroy();
-        this.restartButton = null;
-      }
-      this.drawInitialMessage('Tu oponente se desconectó.');
-    });
-  }
+  this.socket.on('opponentDisconnected', () => {
+    this.canPlay = false;
+    if (this.restartButton) {
+      this.restartButton.destroy();
+      this.restartButton = null;
+    }
+    this.drawInitialMessage('Tu oponente se desconectó.');
+  });
+}
 
   drawInitialMessage(message) {
     this.uiElements.clear(true, true);
@@ -505,7 +518,7 @@ class GameScene extends Phaser.Scene {
     if (this.gameState && this.boardGraphics) {
       this.positionBoard();
       this.updateBoardPieces();
-      
+
       if (this.gameState.winningLine) {
         if (this.winningLineGraphics) {
           this.winningLineGraphics.destroy();

@@ -1,25 +1,82 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Tic Tac Toe</title>
   <style>
-    body {
+    * {
       margin: 0;
-      background-color: #fdfdfd;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      position: fixed;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #game-container {
+      width: 100%;
+      height: 100%;
+      position: fixed;
+      top: 0;
+      left: 0;
+    }
+
+    /* Estilo específico para inputs de login */
+    .login-input {
+      -webkit-user-select: text !important;
+      user-select: text !important;
+      pointer-events: auto !important;
+    }
+
+    /* Prevenir zoom en iOS */
+    input, select, textarea {
+      font-size: 16px !important;
     }
   </style>
 </head>
-
 <body>
   <div id="game-container"></div>
   <script type="module" src="/src/main.js"></script>
-</body>
+  
+  <script>
+    // Script de limpieza inteligente para Android
+    function smartCleanupInputs() {
+      const container = document.getElementById('game-container');
+      if (!container) return;
+      
+      const loginInputs = Array.from(container.querySelectorAll('.login-input'));
+      
+      // Si hay más de un input, eliminar todos excepto el último (el más reciente)
+      if (loginInputs.length > 1) {
+        console.log(`Limpiando ${loginInputs.length - 1} inputs duplicados`);
+        loginInputs.slice(0, -1).forEach(input => {
+          if (input.parentNode) {
+            input.parentNode.removeChild(input);
+          }
+        });
+      }
+    }
 
+    // Ejecutar limpieza solo cuando detectamos duplicación
+    if (/Android/i.test(navigator.userAgent)) {
+      setInterval(smartCleanupInputs, 2000);
+    }
+
+    // Limpieza al cambiar visibilidad (cuando vuelves a la pestaña)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        setTimeout(smartCleanupInputs, 200);
+      }
+    });
+  </script>
+</body>
 </html>
