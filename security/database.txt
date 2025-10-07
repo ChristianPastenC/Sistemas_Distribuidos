@@ -1,0 +1,15 @@
+{
+  "users": {
+    "Node1": {
+      "password": "secure_pass_node1",
+      "public_key_pem": "",
+      "encrypted_value": ""
+    },
+    "Node2": {
+      "password": "secure_pass_node2",
+      "public_key_pem": "-----BEGIN PUBLIC KEY-----\r\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAkt1I/nKBQ+gbIKyzQ+EX\r\nbZhqjUkS2GBS4fv2BifCYuyTzs+lTjp2ZDSXVFrFRuY+glf+5CKxeSSfOJByrotJ\r\n0kf5mT6gtEWZb0qFsCR1SJAak3MpdT8pWM19EM4T6L9JgtR/QVQvqnyiI2WeTv6U\r\n6sLpt2Jj9njj7YCczmvvmUmxoSnJldUivpWYSEDjjdTo3x3UN2zQ1Hte4gjCQMv4\r\n1SBxEpcjKtnk0BWt7CNd1K98u72iOUi/TrXnV3BD7ngz3F/XcJw9T9o6rNNE00v3\r\npMY3WxlQifIlQQyM0onv36ZthSBcTsxnOcjIjFhjL818o/HEBTji9+y8kbFwxI0B\r\nVjVBISw0616k7lNqivApoCXQeDjHy9T7k/EG42UJF3/RUsfVO7oq2/uTKJ/SRdFZ\r\nurL8JuqLCW6gO7j6U53HtMJgh0ONrp+YIFldLyU2r7WaXU2YLMPbm4IfjuhxoCek\r\nqAdXVnQBedCKwtu1TPO6speT+DJgdp6Ew60iQ9VrYcZVNm3awBEV42YwOt9nGFUM\r\nQzWIMZcOlygvjOpFCtg37gbg5ZF1lJb3Ui3NIOwo37oEKyIgy2AbUhxEsdjjPmDe\r\nnhZV4qdaH5zkuUgDORJ39pTdTSroUTye1Q235bYPVASHTVvxEr3NeuDNz+Ar0Jq9\r\nDoD3u09qlIX+U7GVfCQns00CAwEAAQ==\r\n-----END PUBLIC KEY-----\r\n",
+      "encrypted_value": ""
+    }
+  },
+  "api_secret_key": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6"
+}
