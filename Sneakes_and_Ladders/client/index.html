@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Serpientes y Escaleras</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,6 +21,7 @@
 
     * {
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
 
     html,
@@ -31,150 +32,137 @@
       height: 100%;
       background-color: var(--bg-color);
       font-family: 'Poppins', sans-serif;
-    }
-
-    body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
       overflow: hidden;
     }
 
+    .main-container {
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      height: 100vh;
+      background-color: #000;
+    }
+
     #app {
-      position: fixed;
+      flex-grow: 1;
+      position: relative;
+      min-height: 0;
+    }
+
+    #app canvas {
+      position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
+      width: 100% !important;
+      height: 100% !important;
     }
 
     #game-ui-wrapper {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      gap: 40px;
-      z-index: 2;
+      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.98);
+      border-top: 2px solid #ddd;
+      padding: 10px;
+      z-index: 10;
+      transition: opacity 0.3s ease;
     }
 
     #game-ui-wrapper.hidden {
       visibility: hidden;
       opacity: 0;
+      padding: 0;
+      border: 0;
     }
 
-    .ui-panel {
-      flex: 0 0 280px;
+    .bottom-ui-container {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 8px;
     }
 
-    .players-container,
-    .status-container {
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 15px;
-      padding: 20px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    }
-
-    .ui-title {
-      font-family: 'Bungee', cursive;
-      font-size: 20px;
-      color: var(--primary-text);
-      margin-bottom: 15px;
+    .players-container {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
     }
 
     .player-info {
       display: flex;
       align-items: center;
-      margin-bottom: 10px;
-      padding: 10px;
-      border-radius: 10px;
+      padding: 4px 8px;
+      border-radius: 20px;
       transition: all 0.2s ease-in-out;
+      background: #e9e4da;
+      border: 2px solid transparent;
     }
 
     .player-info.active {
-      background-color: var(--accent-color);
+      border-color: var(--accent-color);
       transform: scale(1.05);
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-      color: var(--light-text);
-    }
-
-    .player-info.active .player-details,
-    .player-info.active .player-position {
-      color: var(--light-text);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .player-avatar {
-      width: 40px;
-      height: 40px;
+      width: 25px;
+      height: 25px;
       border-radius: 50%;
-      border: 3px solid white;
-      margin-right: 15px;
+      border: 2px solid white;
+      margin-right: 8px;
       flex-shrink: 0;
     }
 
-    .player-details {
-      flex-grow: 1;
+    .player-name {
       font-weight: 700;
+      font-size: 13px;
       color: #333;
+      margin-right: 8px;
     }
 
     .player-position {
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 500;
       color: #555;
+      background: #fff;
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+
+    .controls-and-status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      padding: 5px;
     }
 
     #game-info-text {
-      font-weight: 500;
-      color: #333;
-      min-height: 40px;
-    }
-
-    .game-area-container {
+      font-weight: 700;
+      color: var(--primary-text);
+      font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+      text-align: left;
       flex-grow: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      height: 100%;
-      min-width: 0;
-    }
-
-    #canvas-placeholder {
-      width: 100%;
-      flex-grow: 1;
-      aspect-ratio: 1 / 1;
-      max-height: 100%;
-      max-width: 700px;
     }
 
     .controls-area {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 15px;
     }
 
     #roll-dice-btn {
       font-family: 'Bungee', cursive;
-      font-size: 1.2rem;
-      padding: 15px 35px;
-      border-radius: 15px;
+      font-size: clamp(1rem, 3vw, 1.2rem);
+      padding: 10px 20px;
+      border-radius: 12px;
       border: none;
       background-color: var(--accent-color);
       color: var(--light-text);
       cursor: pointer;
-      box-shadow: 0 6px 0 var(--dark-accent);
+      box-shadow: 0 4px 0 var(--dark-accent);
       transition: all 0.1s ease-in-out;
-    }
-
-    #roll-dice-btn:hover {
-      transform: translateY(-2px);
     }
 
     #roll-dice-btn:active {
@@ -185,81 +173,40 @@
     #roll-dice-btn.disabled {
       background-color: #b0a99d;
       cursor: not-allowed;
-      box-shadow: 0 6px 0 #7e7811;
+      box-shadow: 0 4px 0 #8a8274;
       transform: translateY(0);
     }
 
     .dice-display {
-      font-size: 32px;
+      font-size: 24px;
       font-weight: 700;
       color: var(--primary-text);
       background-color: white;
-      width: 60px;
-      height: 60px;
+      width: 45px;
+      height: 45px;
       display: flex;
       justify-content: center;
       align-items: center;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
       visibility: hidden;
-    }
-
-    @media (max-width: 800px) {
-      body {
-        overflow-y: auto;
-        height: auto;
-      }
-
-      #game-ui-wrapper {
-        flex-direction: column;
-        height: auto;
-        min-height: 100vh;
-        justify-content: flex-start;
-        padding: 15px;
-        gap: 25px;
-      }
-
-      .game-area-container {
-        order: 1;
-        width: 100%;
-        flex-grow: 0;
-      }
-
-      #canvas-placeholder {
-        width: 100%;
-        height: auto;
-        max-width: 500px;
-        flex-grow: 0;
-      }
-
-      .ui-panel {
-        order: 2;
-        width: 100%;
-        max-width: 500px;
-      }
     }
   </style>
 </head>
 
 <body>
-  <div id="app"></div>
-
-  <div id="game-ui-wrapper" class="hidden">
-    <div class="ui-panel">
-      <div class="players-container">
-        <div class="ui-title">JUGADORES</div>
-        <div id="players-list-ui"></div>
-      </div>
-      <div class="status-container">
-        <div class="ui-title">TURNO</div>
-        <div id="game-info-text">Cargando...</div>
-      </div>
-    </div>
-    <div class="game-area-container">
-      <div id="canvas-placeholder"></div>
-      <div class="controls-area">
-        <div id="dice-result-display" class="dice-display">?</div>
-        <button id="roll-dice-btn">Lanzar Dado</button>
+  <div class="main-container">
+    <div id="app"></div>
+    <div id="game-ui-wrapper" class="hidden">
+      <div class="bottom-ui-container">
+        <div id="players-list-ui" class="players-container"></div>
+        <div class="controls-and-status">
+          <div id="game-info-text">Cargando...</div>
+          <div class="controls-area">
+            <div id="dice-result-display" class="dice-display">?</div>
+            <button id="roll-dice-btn">Lanzar</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

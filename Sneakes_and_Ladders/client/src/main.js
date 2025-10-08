@@ -1,6 +1,7 @@
 // src/main.js
 import Phaser from 'phaser';
 import MenuScene from './scenes/MenuScene';
+import LobbyScene from './scenes/LobbyScene';
 import GameScene from './scenes/GameScene';
 
 const config = {
@@ -13,7 +14,7 @@ const config = {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH
   },
-  scene: [MenuScene, GameScene],
+  scene: [MenuScene, LobbyScene, GameScene],
   render: {
     pixelArt: false,
     antialias: true
