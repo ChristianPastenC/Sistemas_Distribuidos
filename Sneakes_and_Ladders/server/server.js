@@ -19,6 +19,7 @@ class GameRoom {
     this.gameStarted = false;
     this.currentPlayerIndex = 0;
     this.snakesAndLadders = this.generateSnakesAndLadders();
+    this.isProcessingTurn = false;
   }
 
   generateSnakesAndLadders() {
@@ -111,10 +112,25 @@ class GameRoom {
   removePlayer(ws) {
     const index = this.players.findIndex(p => p.ws === ws);
     if (index !== -1) {
+      const removedPlayer = this.players[index];
       this.players.splice(index, 1);
+
       this.players.forEach((p, i) => {
         p.id = i;
       });
+
+      if (index < this.currentPlayerIndex) {
+        this.currentPlayerIndex = Math.max(0, this.currentPlayerIndex - 1);
+      } else if (index === this.currentPlayerIndex && this.players.length > 0) {
+        this.currentPlayerIndex = this.currentPlayerIndex % this.players.length;
+      }
+
+      if (this.players.length < this.minPlayers) {
+        this.gameStarted = false;
+        this.currentPlayerIndex = 0;
+        this.isProcessingTurn = false;
+      }
+
       return true;
     }
     return false;
@@ -130,15 +146,19 @@ class GameRoom {
     if (!this.canStart()) return false;
     this.gameStarted = true;
     this.currentPlayerIndex = 0;
+    this.isProcessingTurn = false;
     return true;
   }
 
   getCurrentPlayer() {
+    if (this.players.length === 0) return null;
     return this.players[this.currentPlayerIndex];
   }
 
   nextTurn() {
+    if (this.players.length === 0) return null;
     this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+    this.isProcessingTurn = false;
     return this.getCurrentPlayer();
   }
 
@@ -146,22 +166,28 @@ class GameRoom {
     const player = this.players.find(p => p.id === playerId);
     if (!player) return null;
 
+    const fromTile = player.currentTile;
     const newTile = Math.min(100, player.currentTile + diceRoll);
-    player.currentTile = newTile;
 
+    let stepTile = newTile;
     let finalTile = newTile;
+    let hasSpecial = false;
+
     if (this.snakesAndLadders[newTile]) {
+      hasSpecial = true;
       finalTile = this.snakesAndLadders[newTile];
-      player.currentTile = finalTile;
     }
+
+    player.currentTile = finalTile;
 
     const hasWon = finalTile === 100;
 
     return {
       playerId,
-      fromTile: newTile,
+      fromTile,
+      stepTile,
       toTile: finalTile,
-      hasSpecial: this.snakesAndLadders[newTile] !== undefined,
+      hasSpecial,
       hasWon
     };
   }
@@ -271,15 +297,25 @@ wss.on('connection', (ws) => {
 
         case 'ROLL_DICE':
           if (currentRoom && currentPlayer && currentRoom.gameStarted) {
+            if (currentRoom.isProcessingTurn) {
+              ws.send(JSON.stringify({
+                type: 'ERROR',
+                error: 'Ya se está procesando un turno'
+              }));
+              return;
+            }
+
             const currentTurnPlayer = currentRoom.getCurrentPlayer();
 
-            if (currentTurnPlayer.id !== currentPlayer.id) {
+            if (!currentTurnPlayer || currentTurnPlayer.id !== currentPlayer.id) {
               ws.send(JSON.stringify({
                 type: 'ERROR',
                 error: 'No es tu turno'
               }));
               return;
             }
+
+            currentRoom.isProcessingTurn = true;
 
             const diceRoll = Math.floor(Math.random() * 6) + 1;
 
@@ -289,9 +325,14 @@ wss.on('connection', (ws) => {
               diceRoll: diceRoll
             });
 
-            const moveResult = currentRoom.movePlayer(currentPlayer.id, diceRoll);
-
             setTimeout(() => {
+              const moveResult = currentRoom.movePlayer(currentPlayer.id, diceRoll);
+
+              if (!moveResult) {
+                currentRoom.isProcessingTurn = false;
+                return;
+              }
+
               currentRoom.broadcastAll({
                 type: 'PLAYER_MOVED',
                 ...moveResult,
@@ -299,19 +340,24 @@ wss.on('connection', (ws) => {
               });
 
               if (moveResult.hasWon) {
-                currentRoom.broadcastAll({
-                  type: 'GAME_OVER',
-                  winner: {
-                    id: currentPlayer.id,
-                    name: currentPlayer.name
-                  }
-                });
+                setTimeout(() => {
+                  currentRoom.broadcastAll({
+                    type: 'GAME_OVER',
+                    winner: {
+                      id: currentPlayer.id,
+                      name: currentPlayer.name,
+                      color: currentPlayer.color
+                    }
+                  });
+                }, 2000);
               } else {
-                currentRoom.nextTurn();
-                currentRoom.broadcastAll({
-                  type: 'NEXT_TURN',
-                  gameState: currentRoom.getGameState()
-                });
+                setTimeout(() => {
+                  currentRoom.nextTurn();
+                  currentRoom.broadcastAll({
+                    type: 'NEXT_TURN',
+                    gameState: currentRoom.getGameState()
+                  });
+                }, 2500);
               }
             }, 100);
           }

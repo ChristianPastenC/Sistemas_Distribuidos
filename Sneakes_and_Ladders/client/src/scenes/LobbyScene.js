@@ -131,14 +131,14 @@ export default class LobbyScene extends Phaser.Scene {
       const avatar = this.add.circle(-80, 0, 35, Phaser.Display.Color.HexStringToColor(player.color).color);
       avatar.setStrokeStyle(4, 0xffffff);
 
-      const nameText = this.add.text(0, -20, player.name, {
+      const nameText = this.add.text(10, -20, player.name, {
         fontFamily: 'Poppins',
         fontSize: '22px',
         color: '#333',
         fontStyle: 'bold'
       }).setOrigin(0.5);
 
-      const statusText = this.add.text(0, 15, player.ready ? '✓ LISTO' : 'Esperando...', {
+      const statusText = this.add.text(10, 15, player.ready ? '✓ LISTO' : 'Esperando...', {
         fontFamily: 'Poppins',
         fontSize: '16px',
         color: player.ready ? '#2a9d8f' : '#999'

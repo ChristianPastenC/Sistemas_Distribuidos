@@ -74,6 +74,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.playerSprites = {};
     this.isProcessing = false;
+    this.pendingDiceResult = null;
   }
 
   setupUI() {
@@ -130,21 +131,47 @@ export default class GameScene extends Phaser.Scene {
   }
 
   setupWebSocketCallbacks() {
-    this.wsManager.on('diceRolled', (data) => this.showDiceRoll(data.diceRoll));
-    this.wsManager.on('playerMoved', (data) => this.animatePlayerMove(data));
+    this.wsManager.on('diceRolled', (data) => {
+      // Guardar el resultado para mostrarlo después de la animación
+      this.pendingDiceResult = data.diceRoll;
+      this.showDiceRoll(data.diceRoll);
+    });
+
+    this.wsManager.on('playerMoved', (data) => {
+      // Esperar a que termine la animación del dado antes de mover
+      this.time.delayedCall(1500, () => {
+        this.animatePlayerMove(data);
+      });
+    });
+
     this.wsManager.on('nextTurn', (data) => {
       this.gameState = data.gameState;
       this.isProcessing = false;
+      this.pendingDiceResult = null;
       this.updateUI();
       this.rollDiceBtn.classList.remove('disabled');
       this.rollDiceBtn.textContent = 'Lanzar';
     });
+
     this.wsManager.on('gameOver', (data) => this.handleWin(data.winner));
+
     this.wsManager.on('playerLeft', (data) => {
       this.gameState = data.gameState;
       this.updateUI();
+      // Si el jugador actual se fue, resetear el estado
+      if (this.isProcessing) {
+        this.isProcessing = false;
+        this.rollDiceBtn.classList.remove('disabled');
+        this.rollDiceBtn.textContent = 'Lanzar';
+      }
     });
-    this.wsManager.on('error', (error) => alert(`Error: ${error}`));
+
+    this.wsManager.on('error', (error) => {
+      alert(`Error: ${error}`);
+      this.isProcessing = false;
+      this.rollDiceBtn.classList.remove('disabled');
+      this.rollDiceBtn.textContent = 'Lanzar';
+    });
   }
 
   handleRoll() {
@@ -154,6 +181,7 @@ export default class GameScene extends Phaser.Scene {
     this.isProcessing = true;
     this.rollDiceBtn.classList.add('disabled');
     this.rollDiceBtn.textContent = '...';
+    this.diceResultEl.style.visibility = 'hidden';
     this.wsManager.rollDice();
   }
 
@@ -162,10 +190,14 @@ export default class GameScene extends Phaser.Scene {
     this.diceManager.mesh.setPosition(camera.scrollX + camera.width / 2, camera.scrollY + camera.height / 2);
     this.diceManager.mesh.setVisible(true);
 
-    this.diceManager.roll((roll) => {
+    // Pasar el resultado correcto al dado para que coincida
+    this.diceManager.roll(result, () => {
       this.diceResultEl.textContent = result;
       this.diceResultEl.style.visibility = 'visible';
-      this.time.delayedCall(800, () => this.diceManager.mesh.setVisible(false));
+      this.time.delayedCall(800, () => {
+        this.diceManager.mesh.setVisible(false);
+        this.diceResultEl.style.visibility = 'hidden';
+      });
     });
   }
 
@@ -174,7 +206,7 @@ export default class GameScene extends Phaser.Scene {
     const sprite = this.playerSprites[moveData.playerId];
     if (!player || !sprite) return;
 
-    const stepTile = moveData.hasSpecial ? moveData.stepTile : moveData.toTile;
+    const stepTile = moveData.stepTile;
     const finalTile = moveData.toTile;
 
     const stepPos = this.tilePositions[stepTile];
@@ -190,6 +222,7 @@ export default class GameScene extends Phaser.Scene {
     const playerOffsetX = (player.id % 2) * 15 - 7.5;
     const playerOffsetY = Math.floor(player.id / 2) * 15 - 7.5;
 
+    // Animar al step tile
     this.tweens.add({
       targets: sprite,
       x: stepPos.x + playerOffsetX,
@@ -200,7 +233,8 @@ export default class GameScene extends Phaser.Scene {
         this.cameras.main.pan(sprite.x, sprite.y, 75, 'Linear', true);
       },
       onComplete: () => {
-        if (moveData.hasSpecial) {
+        // Si hay especial (serpiente o escalera)
+        if (moveData.hasSpecial && stepTile !== finalTile) {
           this.animateJump(sprite);
 
           this.time.delayedCall(200, () => {
@@ -220,6 +254,7 @@ export default class GameScene extends Phaser.Scene {
             });
           });
         } else {
+          // Sin especial, ya llegamos
           player.currentTile = finalTile;
           this.updatePlayerPosition(player.id, finalTile);
         }
@@ -254,7 +289,7 @@ export default class GameScene extends Phaser.Scene {
 
     const activePlayerSprite = this.playerSprites[currentPlayer.id];
     if (activePlayerSprite) {
-      this.cameras.main.pan(activePlayerSprite.x, active_player_sprite.y, 1000, 'Sine.easeInOut');
+      this.cameras.main.pan(activePlayerSprite.x, activePlayerSprite.y, 1000, 'Sine.easeInOut');
     }
   }
 

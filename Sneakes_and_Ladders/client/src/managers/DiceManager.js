@@ -52,11 +52,12 @@ export default class DiceManager {
     this.mesh.modelRotation.y = Phaser.Math.DegToRad(rot.y);
   }
 
-  roll(callback) {
+  roll(result, callback) {
     if (this.isRolling) return;
 
     this.isRolling = true;
-    const result = Phaser.Math.Between(1, 6);
+    // Usar el resultado del servidor en lugar de generar uno aleatorio
+    const finalResult = result || Phaser.Math.Between(1, 6);
     const duration = 1200;
 
     this.scene.tweens.add({
@@ -88,7 +89,8 @@ export default class DiceManager {
       ease: 'Quadratic.InOut',
       yoyo: true,
       onComplete: () => {
-        this.setDiceFace(result);
+        // Establecer la cara correcta del dado
+        this.setDiceFace(finalResult);
         this.mesh.scale = 1;
 
         this.scene.tweens.add({
@@ -100,7 +102,7 @@ export default class DiceManager {
           onComplete: () => {
             this.mesh.scale = 1;
             this.isRolling = false;
-            if (callback) callback(result);
+            if (callback) callback(finalResult);
           }
         });
       }
