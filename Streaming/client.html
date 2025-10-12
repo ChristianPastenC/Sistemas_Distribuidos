@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang='es'>
+
+<head>
+  <meta charset='UTF-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>WebRTC Video Stream</title>
+  <script src='https://cdn.tailwindcss.com'></script>
+  <style>
+    #video-grid video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  </style>
+</head>
+
+<body class='bg-slate-100 flex flex-col items-center p-4 min-h-screen'>
+
+  <div class='w-full max-w-6xl space-y-4'>
+    <div class='bg-white p-4 rounded-lg shadow-md flex flex-wrap items-center justify-center gap-4'>
+      <input type='text' id='usernameInput' placeholder='Ingresa tu nombre'
+        class='border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 w-64'>
+      <button id='btnConnect'
+        class='bg-sky-500 text-white px-4 py-2 rounded-md hover:bg-sky-600 disabled:bg-slate-400 transition'>
+        Conectar y Unirse al Stream
+      </button>
+      <div class='flex items-center gap-2'>
+        <span id='status' class='text-xs font-semibold px-2.5 py-1 rounded-full bg-red-500 text-white'>OFF</span>
+        <span id='statusText' class='text-sm text-slate-600'>Desconectado</span>
+      </div>
+    </div>
+
+    <div class='bg-white p-4 rounded-lg shadow-md'>
+      <div class='flex items-center justify-between mb-2'>
+        <h2 class='text-lg font-semibold text-slate-700'>Estado de Conexiones</h2>
+        <span id='participantCount' class='text-sm font-medium text-slate-600'>Participantes: 0</span>
+      </div>
+      <div id='connectionStatus' class='text-xs text-slate-500 space-y-1 max-h-32 overflow-y-auto'>
+        <p>No hay conexiones activas</p>
+      </div>
+    </div>
+
+    <div id='video-grid'
+      class='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-slate-900 p-4 rounded-lg min-h-[60vh]'>
+    </div>
+  </div>
+
+  <script src='main.js'></script>
+</body>
+
+</html>
